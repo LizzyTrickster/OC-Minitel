@@ -8,6 +8,9 @@ for a in component.list("modem") do
  modems[a] = component.proxy(a)
  modems[a].open(net.port)
 end
+for a in component.list("tunnel") do
+ modems[a] = component.proxy(a)
+end
 
 local function genPacketID()
  local packetID = ""
@@ -19,10 +22,18 @@ end
 
 local function rawSendPacket(packetID,packetType,to,from,vport,data)
  if routeCache[to] then
+  if modems[routeCache[to][1]].type == "tunnel" then
+   modems[routeCache[to][1]].send(packetID,packetType,to,from,vport,data)
+ else
   modems[routeCache[to][1]].send(routeCache[to][2],net.port,packetID,packetType,to,from,vport,data)
+ end
  else
   for k,v in pairs(modems) do
-   v.broadcast(net.port,packetID,packetType,to,from,vport,data)
+   if v.type == "tunnel" then
+    v.send(packetID,packetType,to,from,vport,data)
+   else
+    v.broadcast(net.port,packetID,packetType,to,from,vport,data)
+   end
   end
  end
 end
