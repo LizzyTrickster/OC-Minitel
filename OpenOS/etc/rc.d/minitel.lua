@@ -22,12 +22,14 @@ local serial = require "serialization"
 
 local hostname = computer.address():sub(1,8)
 local modems = {}
+local privateModems = {}
 
 cfg.debug = false
 cfg.port = 4096
 cfg.retry = 10
 cfg.retrycount = 3
 cfg.route = true
+cfg.private = {}
 
 --[[
 LKR format:
@@ -79,6 +81,12 @@ local function loadconfig()
   for k,v in pairs(newcfg) do
    cfg[k] = v
   end
+  for k in pairs(privateModems) do
+   privateModems[k] = nil
+  end
+  for _,laddr in ipairs(cfg.private) do
+   privateModems[laddr] = true
+  end
  else
   saveconfig()
  end
@@ -114,6 +122,16 @@ function start()
   end
   return npID
  end
+
+ local function canUseModemFor(remoteHost,modemUUID)
+  if not privateModems[modemUUID] then
+   return true
+  end
+  if not cfg.sroutes[remoteHost] then
+   return false
+  end
+  return cfg.sroutes[remoteHost][1] == modemUUID
+ end
  
  local function sendPacket(packetID,packetType,dest,sender,vPort,data,repeatingFrom)
   if rcache[dest] then
@@ -132,7 +150,7 @@ function start()
    for k,v in pairs(modems) do
     -- do not send message back to the wired or linked modem it came from
     -- the check for tunnels is for short circuiting `v.isWireless()`, which does not exist for tunnels
-    if v.address ~= repeatingFrom or (v.type ~= "tunnel" and v.isWireless()) then
+    if (v.address ~= repeatingFrom or (v.type ~= "tunnel" and v.isWireless())) and canUseModemFor(dest,v.address) then
      if v.type == "modem" then
       v.broadcast(cfg.port,packetID,packetType,dest,sender,vPort,data)
      elseif v.type == "tunnel" then
@@ -172,6 +190,7 @@ function start()
   pruneCache()
   if pport == cfg.port or pport == 0 then -- for linked cards
    dprint(cfg.port,vPort,packetType,dest)
+   if not canUseModemFor(sender,localModem) then return end
    if checkPCache(packetID) then return end
    -- update the route cache on every packet received, not just the first time we've seen it since expiring the cache.
    -- also moved it to before the ack-packets are sent out, which should help them to not flood the network with acks
