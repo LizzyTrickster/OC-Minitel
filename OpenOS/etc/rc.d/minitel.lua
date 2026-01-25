@@ -278,3 +278,16 @@ function del_route(to)
  cfg.sroutes[to] = nil
  saveconfig()
 end
+function route()
+ for k,v in pairs(rcache) do
+  print(k,serial.serialize(v))
+ end
+end
+function persist_route(to)
+ local entry = rcache[to]
+ if not entry then
+  print("No cached route to "..tostring(to))
+  return
+ end
+ set_route(to,entry[1],entry[2])
+end
