@@ -117,6 +117,10 @@ function start()
  
  local function sendPacket(packetID,packetType,dest,sender,vPort,data,repeatingFrom)
   if rcache[dest] then
+   if rcache[dest][1] == repeatingFrom and packetType ~= 2 then
+    dprint("Cached", rcache[dest][1], "send", "Packet came in on the same interface we use to send, not forwarding")
+    return
+   end
    dprint("Cached", rcache[dest][1],"send",rcache[dest][2],cfg.port,packetID,packetType,dest,sender,vPort,data)
    if component.type(rcache[dest][1]) == "modem" then
     component.invoke(rcache[dest][1],"send",rcache[dest][2],cfg.port,packetID,packetType,dest,sender,vPort,data)
