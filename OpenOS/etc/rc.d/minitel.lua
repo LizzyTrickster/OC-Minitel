@@ -173,6 +173,10 @@ function start()
   if pport == cfg.port or pport == 0 then -- for linked cards
    dprint(cfg.port,vPort,packetType,dest)
    if checkPCache(packetID) then return end
+   -- update the route cache on every packet received, not just the first time we've seen it since expiring the cache.
+   -- also moved it to before the ack-packets are sent out, which should help them to not flood the network with acks
+   dprint("rcache: "..sender..":", localModem,from,computer.uptime())
+   rcache[sender] = {localModem,from,computer.uptime()+cfg.rctime} 
    if dest == hostname then
     if packetType == 1 then
      sendPacket(genPacketID(),2,sender,hostname,vPort,packetID)
@@ -189,10 +193,6 @@ function start()
     computer.pushSignal("net_broadcast",sender,vPort,data)
    elseif cfg.route then -- repeat packets if route is enabled
     sendPacket(packetID,packetType,dest,sender,vPort,data,localModem)
-   end
-   if not rcache[sender] then -- add the sender to the rcache
-    dprint("rcache: "..sender..":", localModem,from,computer.uptime())
-    rcache[sender] = {localModem,from,computer.uptime()+cfg.rctime}
    end
    if not pcache[packetID] then -- add the packet ID to the pcache
     pcache[packetID] = computer.uptime()+cfg.pctime
