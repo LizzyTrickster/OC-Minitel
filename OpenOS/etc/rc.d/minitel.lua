@@ -79,7 +79,16 @@ local function loadconfig()
   local newcfg = serial.unserialize(f:read("*a"))
   f:close()
   for k,v in pairs(newcfg) do
-   cfg[k] = v
+   if k == "sroutes" then
+    for to in pairs(cfg.sroutes) do
+     cfg.sroutes[to] = nil
+    end
+    for to,route in pairs(v) do
+     cfg.sroutes[to] = route
+    end
+   else
+    cfg[k] = v
+   end
   end
   for k in pairs(privateModems) do
    privateModems[k] = nil
