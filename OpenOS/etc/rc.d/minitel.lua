@@ -66,6 +66,37 @@ local function dprint(...)
  end
 end
 
+local function completeModem(prefix)
+ local candidates = {}
+ local prefixLen = #prefix
+ if prefixLen == 36 then
+  -- explicit UUID is provided, do not check whether it is currently present
+  return {prefix}
+ end
+ for _,modem in ipairs(modems) do
+  local laddr = modem.address
+  if laddr:sub(1,prefixLen) == prefix then
+   candidates[#candidates+1] = laddr
+  end
+ end
+ return candidates
+end
+
+local function completeModemSingle(prefix)
+ local candidates = completeModem(prefix)
+ if #candidates == 1 then
+  return candidates[1]
+ elseif #candidates < 1 then
+  print("No matching modems")
+ else
+  print("Candidate modems:")
+  for _,laddr in ipairs(candidates) do
+   print(laddr)
+  end
+ end
+ return nil
+end
+
 local function saveconfig()
  local f = io.open("/etc/minitel.cfg","wb")
  if f then
@@ -318,4 +349,33 @@ function persist_route(to)
   return
  end
  set_route(to,entry[1],entry[2])
+end
+function private(laddr)
+ laddr = completeModemSingle(laddr)
+ if not laddr then return end
+ if privateModems[laddr] then
+  print("Modem "..laddr.." is already private")
+  return
+ else
+  cfg.private[#cfg.private+1] = laddr
+  privateModems[laddr] = true
+  saveconfig()
+ end
+end
+function unprivate(laddr)
+ laddr = completeModemSingle(laddr)
+ if not laddr then return end
+ if not privateModems[laddr] then
+  print("Modem "..laddr.." is already public")
+  return
+ else
+  for k,v in ipairs(cfg.private) do
+   if v == laddr then
+    table.remove(cfg.private, k)
+    break
+   end
+  end
+  privateModems[laddr] = nil
+  saveconfig()
+ end
 end
