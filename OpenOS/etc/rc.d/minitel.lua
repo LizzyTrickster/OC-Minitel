@@ -330,6 +330,8 @@ function set(k,v)
 end
 
 function set_route(to,laddr,raddr)
+ laddr = completeModemSingle(laddr)
+ if not laddr then return end
  cfg.sroutes[to] = {laddr,raddr,0}
  saveconfig()
 end
