@@ -174,6 +174,14 @@ function start()
  end
  
  local function sendPacket(packetID,packetType,dest,sender,vPort,data,repeatingFrom)
+  if not dest or dest == nil then
+   local f=io.open("/tmp/minitel_errors.log", "wb")
+   if f then
+   f:write("Error in sendPAcket: dest WAS NIL!!\nArgs: ID='"..packetID.."', Type="..packetType..", sender='"..sender.."', vport="+tostring(vPort)..", data='"..data.."'\n--------------------------------------------\n")
+   f:close()
+   end
+   return
+  end
   if rcache[dest] then
    if rcache[dest][1] == repeatingFrom and packetType ~= 2 then
     dprint("Cached", rcache[dest][1], "send", "Packet came in on the same interface we use to send, not forwarding")
